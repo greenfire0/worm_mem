@@ -54,7 +54,7 @@ def write_worm_to_csv(base_name: str, worm: "WormConnectome", max_rows: int = 10
     # Append the worm matrix to the selected file.
     with fname.open("a", newline="") as csvfile:
         writer = csv.writer(csvfile)
-        writer.writerow(worm.weight_matrix.tolist())
+        writer.writerow(worm.weights.tolist())
 
 def read_arrays_from_csv_pandas(filename: str): 
     df = (pd.read_csv(filename, header=None))
