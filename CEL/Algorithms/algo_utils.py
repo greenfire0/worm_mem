@@ -128,16 +128,27 @@ def mutate(offspring,matrix_shape, n=5):
 
 
 @ray.remote(max_retries=0) # type: ignore[arg-type]
-def evaluate_fitness_nomad(func, candidate_weights:npt.NDArray[np.float64], env, prob_type, interval, episodes,ind,bounds:int,bb_eval,verify:bool=False):
-        wall_start = time.perf_counter() 
-        cpu_start  = time.process_time()
+def evaluate_fitness_nomad(func, candidate_weights:npt.NDArray[np.float64], env, prob_type, interval, episodes,ind,bounds:int,bb_eval,verify:bool=True):
+    
         if ind.size == 0:
                 raise ValueError(f"Please pass indicies,{ind}")
-        x0:npt.NDArray[np.float64] = np.array(candidate_weights[ind])
-        x0 = np.array(candidate_weights[ind])
-        lower_bounds = (x0 - bounds).tolist()
-        upper_bounds = (x0 + bounds).tolist()
-        x0 = x0.tolist()
+        x0 = np.asarray(candidate_weights[ind], dtype=np.float64)
+
+        # symmetric box
+        lower_bounds = x0 - bounds
+        upper_bounds = x0 + bounds
+
+        # vector-clamp:  keep sign of the original weight
+        pos_mask = x0 > 0                       # excitatory / gap
+        neg_mask = x0 < 0                       # inhibitory
+
+        lower_bounds[pos_mask] = 0.001            # clamp floor to 0
+        upper_bounds[neg_mask] = -0.001            # clamp ceiling to 0
+
+        # PyNomad wants Python lists
+        lower_bounds = lower_bounds.tolist()
+        upper_bounds = upper_bounds.tolist()
+        x0           = x0.tolist()
         
         params = [
             'DISPLAY_DEGREE 0', 
@@ -148,11 +159,11 @@ def evaluate_fitness_nomad(func, candidate_weights:npt.NDArray[np.float64], env,
         wrapper = BlackboxWrapper(func,env, prob_type, interval, episodes,ind,candidate_weights)
         result = PyNomad.optimize(wrapper.blackbox_block, x0, lower_bounds, upper_bounds,params)
         # Use NOMAD's minimize function with blackbox_block and pass additional args
-
         if verify:
             w_test = np.copy(candidate_weights)
             w_test.setflags(write=True)        
             w_test[ind] = np.copy(result['x_best'])
+            print(w_test[ind])
             fitness_verify = func(
                                         w_test,
                                         env,
@@ -160,16 +171,14 @@ def evaluate_fitness_nomad(func, candidate_weights:npt.NDArray[np.float64], env,
                                         interval,
                                         episodes)
             #print("fitness",-result['f_best'],"fitness",fitness_verify)
+            print(fitness_verify)
             assert abs(fitness_verify+result['f_best'])<0.1,( w_test[ind]==result['x_best'], "\nResults\n",fitness_verify,result['f_best'])
             del w_test,fitness_verify
         
-        cpu_total  = time.process_time() - cpu_start
-        wall_total = time.perf_counter() - wall_start
-        cpu_fit    = wrapper.time                # only fitness calls
-        cpu_nomad  = max(cpu_total - cpu_fit, 0) # PyNomad + copy + misc
+        w_test = np.copy(candidate_weights)
+        w_test[ind]=np.copy(result['x_best'])
         del wrapper
-        print(result)
-        return ([ind,result['x_best']],-result['f_best'],cpu_fit,wall_total,cpu_nomad)
+        return (w_test,-result['f_best'])
 
 
 
@@ -182,7 +191,6 @@ class BlackboxWrapper:
         self.episodes = episodes
         self.ind = index
         self.candidate = cand
-        self.time =0.0
 
     def blackbox(self, eval_point):
             self.candidate_edit = []
@@ -190,11 +198,9 @@ class BlackboxWrapper:
             for a in range(len(self.ind)):
                 self.candidate_edit.append(eval_point.get_coord(a))
             self.candidate_weights[self.ind] = self.candidate_edit
-            tic = time.process_time()
             eval_value = -1*self.func(
                     self.candidate_weights, self.env, self.prob_type, 
                     self.interval, self.episodes)
-            self.time += time.process_time() - tic
             eval_point.setBBO(str(eval_value).encode('utf-8'))
             del self.candidate_weights
             return True

@@ -168,8 +168,8 @@ class WormConnectome:
 
 
     def _refresh_arrays(self):
-        for m in (self.gap, self.exc, self.inh):
-            m.eliminate_zeros()
+        #for m in (self.gap, self.exc, self.inh):
+            #m.eliminate_zeros()
         self._exc_d, self._exc_i, self._exc_p = map(np.asarray,
             (self.exc.data, self.exc.indices, self.exc.indptr))
         self._inh_d, self._inh_i, self._inh_p = map(np.asarray,
@@ -221,37 +221,43 @@ class WormConnectome:
     def __setitem__(self,
                     k: int | List[int] | np.ndarray,
                     value: float | List[float] | np.ndarray):
-        """
-        wc[idx]      = v          (idx is int)         → one edge
-        wc[idx_list] = v_scalar   (broadcast)          → many edges
-        wc[idx_list] = v_list     (len match)          → many edges
-        """
-        # ---------- normalise inputs ----------------------------
-        if isinstance(k, (int, np.integer)):           # single edge
+
+        # ---------- normalise inputs (unchanged) ---------------------------
+        if isinstance(k, (int, np.integer)):
             ks = np.array([int(k)], dtype=np.int64)
             vs = np.full(1, value, dtype=np.float64)
-        else:                                          # vector path
+        else:
             ks = np.asarray(k, dtype=np.int64)
-            if np.isscalar(value):
-                vs = np.full(len(ks), value, dtype=np.float64)
-            else:
-                vs = np.asarray(value, dtype=np.float64)
-                if len(vs) != len(ks):
-                    raise ValueError("value array length must match k array")
+            vs = np.full(len(ks), value, dtype=np.float64) if np.isscalar(value) \
+                else np.asarray(value, dtype=np.float64)
+            if len(vs) != len(ks):
+                raise ValueError("value array length must match k array")
 
-        # ---------- edit all edges ------------------------------
+        # ---------- edit edges --------------------------------------------
         for idx, v in zip(ks, vs):
             layer, i, j = self._edge_ptr[int(idx)]
 
-            if layer == 2:                             # gap (mirrored)
+            if layer == 2:                       # ── gap (mirror) ──────────
                 self.gap[i, j] = self.gap[j, i] = v
-            else:                                      # chemical
-                self.exc[i, j] = self.inh[i, j] = 0.0
-                if   v > 0: self.exc[i, j] =  v
-                elif v < 0: self.inh[i, j] = -v
-                # v == 0  → edge removed
 
-        # refresh once at the end
+            elif layer == 0:                     # ── excitatory edge ───────
+                if v <= 0:
+                    raise ValueError("edge #{idx} is excitatory; weight must be >0")
+                self.exc[i, j] = v              # update this layer…
+                if self.inh[i, j] != 0:         # …and *delete* from other layer
+                    self.inh[i, j] = 0
+
+            else:                               # ── inhibitory edge ───────
+                if v >= 0:
+                    raise ValueError("edge #{idx} is inhibitory; weight must be <0")
+                self.inh[i, j] = -v             # store magnitude
+                if self.exc[i, j] != 0:
+                    self.exc[i, j] = 0
+
+        # ---------- purge zeros & rebuild views ---------------------------
+        for m in (self.exc, self.inh, self.gap):
+            m.eliminate_zeros()
+
         self._refresh_arrays()
 
     # ── len() and counts ─────────────────────────────────────
@@ -271,6 +277,26 @@ class WormConnectome:
         Excitatory > 0, inhibitory < 0, gap value duplicated per direction.
         """
         return self._edge_w.copy() 
+    @weights.setter
+    def weights(self, new_w: np.ndarray):
+        """
+        Replace the *entire* weight vector in one shot.
+
+        Parameters
+        ----------
+        new_w : 1-D ndarray (len == len(self._edge_ptr))
+            The replacement weights, in exactly the same edge order as
+            `self.weights`.
+        """
+        new_w = np.asarray(new_w, dtype=np.float64)
+        if new_w.shape != (len(self._edge_ptr),):
+            raise ValueError(f"weights must be shape {(len(self._edge_ptr),)}")
+
+        # vectorised update: use our __setitem__ that already handles
+        # sign logic and gap mirroring
+        all_idx = np.arange(len(self._edge_ptr), dtype=np.int64)
+        self[all_idx] = new_w
+
 
     # ─────────────────────────────────────────────────────────────
     # 6.  Human-readable summary with *all* connection types

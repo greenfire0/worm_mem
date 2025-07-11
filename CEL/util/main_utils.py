@@ -18,7 +18,7 @@ from graphs.Graph_path_over_gen import Genetic_Dyn_Algorithm as GD_PathGen
 from graphs.wpi import search_connection_impacts, calc_simular
 from graphs.graphing import graph_results, graph_trained_worms, graph_agg
 from graphs.Graph_fitness_over_time_old import Genetic_Dyn_Algorithm as GD_Graph_Old
-from graphs.graph_video_ngons import Genetic_Dyn_Video
+from CEL.graphs.graph_video import Genetic_Dyn_Video
 import numpy.typing as npt
 from util.write_read_txt import delete_arrays_csv_if_exists
 

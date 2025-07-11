@@ -7,7 +7,7 @@ from typing import List
 import numpy.typing as npt
 
 class WormSimulationEnv(gym.Env):
-    def __init__(self, pulse_timesteps:List[int] = [0] ,graphing:bool = False):
+    def __init__(self, pulse_timesteps:List[int] = [0,50] ,graphing:bool = False):
         super().__init__()
         self.dimx, self.dimy = 1600.0, 1200.0
         self.episode_len = 250         # ticks 0 … 100
@@ -54,7 +54,10 @@ class WormSimulationEnv(gym.Env):
         left_speed, right_speed = actions
         self.worm.kinematic_step(left_speed=left_speed, right_speed=right_speed)
         observations = self._get_observations()
-        observations[4] = True if step in self.pulse else False
+        if self.prob==0:
+            self.worm.sees_food= True if step in self.pulse else False
+        else:
+            self.worm.sees_food = True if step == self.pulse[0] else False
         rewards = self.calculate_rewards(left_speed,right_speed,self.prob,self.reward)
         del left_speed,right_speed
         return observations, rewards
@@ -62,7 +65,11 @@ class WormSimulationEnv(gym.Env):
     def render(self) -> None:
         self.ax.clear()
         worm = self.worm
-        self.ax.plot(worm.position[0], worm.position[1], 'ro')
+        if self.worm.sees_food:
+            color = "c"
+        else:
+            color = "ro"
+        self.ax.plot(worm.position[0], worm.position[1], color)
         self.ax.plot([worm.position[0], worm.position[0] + 100 * np.cos(worm.facing_dir)],
                      [worm.position[1], worm.position[1] + 100 * np.sin(worm.facing_dir)], 'b-')
         self.ax.set_xlim(0, self.dimx)
