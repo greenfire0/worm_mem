@@ -178,7 +178,7 @@ def evaluate_fitness_nomad(func, candidate_weights:npt.NDArray[np.float64], env,
         w_test = np.copy(candidate_weights)
         w_test[ind]=np.copy(result['x_best'])
         del wrapper
-        return (w_test,-result['f_best'])
+        return (candidate,-result['f_best'])
 
 
 
