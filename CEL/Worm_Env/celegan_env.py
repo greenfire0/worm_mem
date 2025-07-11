@@ -7,10 +7,10 @@ from typing import List
 import numpy.typing as npt
 
 class WormSimulationEnv(gym.Env):
-    def __init__(self, pulse_timesteps:List[int] = [0,50] ,graphing:bool = False):
+    def __init__(self, pulse_timesteps:List[int] = [0,1,2,3,4,5] ,graphing:bool = False):
         super().__init__()
         self.dimx, self.dimy = 1600.0, 1200.0
-        self.episode_len = 250         # ticks 0 … 100
+        self.episode_len = 100         # ticks 0 … 100
         # ------------------------------------------------
         if graphing:
             self.fig, self.ax = plt.subplots()
@@ -23,7 +23,7 @@ class WormSimulationEnv(gym.Env):
 
     @staticmethod
     @njit
-    def calculate_rewards(left_speed: float, right_speed: float, prob: int,reward: float) -> float:
+    def calculate_rewards(left_speed: float, right_speed: float, prob: int,reward: float,mem_reward:bool) -> float:
         """
         Reward rules
         ------------
@@ -35,10 +35,11 @@ class WormSimulationEnv(gym.Env):
 
         Returns +1.0 on a correct turn, −0.1 otherwise.
         """
-        if prob == 1 and right_speed > left_speed:      # turning left
-            return reward
+        if prob == 1 and right_speed > left_speed and mem_reward:      # turning left
+            return 1
         if prob == 0 and left_speed > right_speed:      # turning right
-            return 1.0
+            print("super")
+            return 1
         return 0
 
 
@@ -50,31 +51,17 @@ class WormSimulationEnv(gym.Env):
         self.prob = prob
         return self._get_observations()
 
-    def step(self, actions,step):
+    def step(self, actions):
+        self.step_count+=1
+
         left_speed, right_speed = actions
         self.worm.kinematic_step(left_speed=left_speed, right_speed=right_speed)
         observations = self._get_observations()
-        if self.prob==0:
-            self.worm.sees_food= True if step in self.pulse else False
-        else:
-            self.worm.sees_food = True if step == self.pulse[0] else False
-        rewards = self.calculate_rewards(left_speed,right_speed,self.prob,self.reward)
+        #if self.prob==1:
+        #    self.worm.sees_food= True if self.step_count in self.pulse else False
+        rewards = self.calculate_rewards(left_speed,right_speed,self.prob,self.reward,self.step_count>=self.pulse[-1])
         del left_speed,right_speed
         return observations, rewards
-
-    def render(self) -> None:
-        self.ax.clear()
-        worm = self.worm
-        if self.worm.sees_food:
-            color = "c"
-        else:
-            color = "ro"
-        self.ax.plot(worm.position[0], worm.position[1], color)
-        self.ax.plot([worm.position[0], worm.position[0] + 100 * np.cos(worm.facing_dir)],
-                     [worm.position[1], worm.position[1] + 100 * np.sin(worm.facing_dir)], 'b-')
-        self.ax.set_xlim(0, self.dimx)
-        self.ax.set_ylim(0, self.dimy)
-        plt.pause(0.01)
 
     
     def _get_observations(self) ->npt.NDArray:  
@@ -84,7 +71,7 @@ class WormSimulationEnv(gym.Env):
                 self.worm.position[0],
                 self.worm.position[1],
                 self.worm.facing_dir,
-                self.worm.sees_food,
+                True if self.step_count == self.pulse[0] else False, ## this is bad
             ])
         return np.array(observation)
 

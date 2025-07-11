@@ -54,9 +54,9 @@ class Genetic_Dyn_Video:
     """
 
     def __init__(self,
-                 patterns          = (0, 1),          # prob list
-                 total_episodes    = 10,
-                 training_interval = 25,
+                 patterns          = [0],          # prob list
+                 total_episodes    = 1,
+                 training_interval = 100,
                  tmp_img_folder    = "tmp_img"):
 
         self.patterns           = list(patterns)
@@ -93,7 +93,7 @@ class Genetic_Dyn_Video:
         n_env = len(envs)
         n_col = 2 if n_env == 2 else min(3, n_env)
         n_row = int(np.ceil(n_env / n_col))
-
+        rewards = 0
         # 2 ─ simulation loop
         for step in tqdm(range(steps), desc="Simulating"):
             frames = []
@@ -101,11 +101,10 @@ class Genetic_Dyn_Video:
                 if not done[i]:
                     obs   = env._get_observations()
                     move  = wc.move(obs[0], obs[4])
-                    _, _, = env.step(move, step)
+                    rewards+=  env.step(move)[1]
 
                 frames.append(last_frames[i] if done[i]
                               else get_frame_from_env(env))
-
             # pad with blanks
             h, w, _ = frames[0].shape
             blank   = np.zeros_like(frames[0])
@@ -119,6 +118,7 @@ class Genetic_Dyn_Video:
             cv2.imwrite(os.path.join(self.tmp_img_folder,
                                      f"frame_{step:05d}.png"),
                         montage)
+        print(rewards)
 
         # 3 ─ compile → MP4
         pngs  = sorted(p for p in os.listdir(self.tmp_img_folder)

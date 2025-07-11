@@ -5,15 +5,15 @@ import numpy as np
 from Algorithms.Pure_NOMAD import Pure_NOMAD
 import ray
 
-#gv = Genetic_Dyn_Video()        # defaults: patterns 0 & 1
-#gv.run_video_simulation()
+if False:
+    ray.init(
+                ignore_reinit_error=True,
+                object_store_memory=12 * 1024 * 1024 * 1024,
+                num_cpus=16,
+            )
+    pn = Pure_NOMAD()
+    pn.run()
 
 
-
-ray.init(
-            ignore_reinit_error=True,
-            object_store_memory=8 * 1024 * 1024 * 1024,
-            num_cpus=8,
-        )
-pn = Pure_NOMAD()
-pn.run()
+gv = Genetic_Dyn_Video()        # defaults: patterns 0 & 1
+gv.run_video_simulation()

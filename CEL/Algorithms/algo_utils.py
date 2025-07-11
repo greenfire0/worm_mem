@@ -102,16 +102,15 @@ def evaluate_fitness_ray(candidate_weights, env, prob_type,interval,episodes):
     return sum_rewards
 
 @staticmethod
-def evaluate_fitness_static(candidate_weights, env:WormSimulationEnv, prob_type ,interval,episodes):
+def evaluate_fitness_static(candidate:WormConnectome, env:WormSimulationEnv, prob_type ,interval,episodes):
         sum_rewards = 0
-        candidate = WormConnectome(init_weights=candidate_weights)
         for a in prob_type:
             env.reset(a)
             for _ in range(episodes):  # total_episodes
                 observation = env._get_observations()
                 for s in range(interval):  # training_interval
                     movement = candidate.move(observation[0], observation[4])
-                    next_observation, reward = env.step(movement, s)
+                    next_observation, reward = env.step(movement)
                     observation = next_observation
                     sum_rewards+=reward
         return sum_rewards
@@ -149,18 +148,18 @@ def evaluate_fitness_nomad(func, candidate_weights:npt.NDArray[np.float64], env,
         lower_bounds = lower_bounds.tolist()
         upper_bounds = upper_bounds.tolist()
         x0           = x0.tolist()
-        
+        candidate = WormConnectome(init_weights = candidate_weights)
         params = [
             'DISPLAY_DEGREE 0', 
             'DISPLAY_STATS BBE BLK_SIZE OBJ', 
             'BB_MAX_BLOCK_SIZE 4',
             f'MAX_BB_EVAL {bb_eval}'
         ]
-        wrapper = BlackboxWrapper(func,env, prob_type, interval, episodes,ind,candidate_weights)
+        wrapper = BlackboxWrapper(func,env, prob_type, interval, episodes,ind,candidate)
         result = PyNomad.optimize(wrapper.blackbox_block, x0, lower_bounds, upper_bounds,params)
         # Use NOMAD's minimize function with blackbox_block and pass additional args
         if verify:
-            w_test = np.copy(candidate_weights)
+            w_test = np.copy(candidate)
             w_test.setflags(write=True)        
             w_test[ind] = np.copy(result['x_best'])
             print(w_test[ind])
@@ -175,12 +174,9 @@ def evaluate_fitness_nomad(func, candidate_weights:npt.NDArray[np.float64], env,
             assert abs(fitness_verify+result['f_best'])<0.1,( w_test[ind]==result['x_best'], "\nResults\n",fitness_verify,result['f_best'])
             del w_test,fitness_verify
         
-        w_test = np.copy(candidate_weights)
-        w_test[ind]=np.copy(result['x_best'])
+        candidate[ind]=np.copy(result['x_best'])
         del wrapper
         return (candidate,-result['f_best'])
-
-
 
 class BlackboxWrapper:
     def __init__(self, func, env, prob_type, interval, episodes,index,cand):
@@ -190,19 +186,17 @@ class BlackboxWrapper:
         self.interval = interval
         self.episodes = episodes
         self.ind = index
-        self.candidate = cand
+        self.candidate:WormConnectome = cand
 
     def blackbox(self, eval_point):
             self.candidate_edit = []
-            self.candidate_weights = np.copy(self.candidate).astype(np.float64)
             for a in range(len(self.ind)):
                 self.candidate_edit.append(eval_point.get_coord(a))
-            self.candidate_weights[self.ind] = self.candidate_edit
+            self.candidate[self.ind] = self.candidate_edit
             eval_value = -1*self.func(
-                    self.candidate_weights, self.env, self.prob_type, 
+                    self.candidate, self.env, self.prob_type, 
                     self.interval, self.episodes)
             eval_point.setBBO(str(eval_value).encode('utf-8'))
-            del self.candidate_weights
             return True
 
     def blackbox_block(self, eval_block):

@@ -130,7 +130,6 @@ class WormConnectome:
         sensory_idx = (self.touch_idx if 0 < dist < 100
                        else self.food_idx if sees_food
                        else np.empty(0, np.int32))
-
         left, right = _step_once(self.post,
                                  self._exc_d, self._exc_i, self._exc_p,
                                  self._inh_d, self._inh_i, self._inh_p,
