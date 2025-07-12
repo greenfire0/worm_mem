@@ -38,7 +38,6 @@ class WormSimulationEnv(gym.Env):
         if prob == 1 and right_speed > left_speed and mem_reward:      # turning left
             return 1
         if prob == 0 and left_speed > right_speed:      # turning right
-            print("super")
             return 1
         return 0
 
