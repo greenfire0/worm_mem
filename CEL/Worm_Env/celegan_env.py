@@ -16,8 +16,9 @@ class WormSimulationEnv(gym.Env):
             self.fig, self.ax = plt.subplots()
         self.pulse = pulse_timesteps
         self.prob = 0
-        self.reward = (self.episode_len)/(self.episode_len-pulse_timesteps[-1])
-        self.worm = Worm(position=[self.dimx / 2.0, self.dimy / 2.0])
+        #self.reward = (self.episode_len)/(self.episode_len-pulse_timesteps[-1])
+        self.worm:Worm = Worm(position=[self.dimx / 2.0, self.dimy / 2.0])
+        self.reward = 0
         self.reset(self.prob)
         
 
@@ -47,6 +48,7 @@ class WormSimulationEnv(gym.Env):
             del self.worm
         self.worm = Worm(position=[self.dimx / 2.0, self.dimy / 2.0])
         self.step_count = 0
+        self.reward=0
         self.prob = prob
         return self._get_observations()
 
@@ -58,21 +60,44 @@ class WormSimulationEnv(gym.Env):
         observations = self._get_observations()
         #if self.prob==1:
         #    self.worm.sees_food= True if self.step_count in self.pulse else False
-        rewards = self.calculate_rewards(left_speed,right_speed,self.prob,self.reward,self.step_count>=self.pulse[-1])
+        reward = self.calculate_rewards(left_speed,right_speed,self.prob,self.reward,self.step_count>=self.pulse[-1])
+        self.reward += reward
+        if reward > 0 and self.step_count < 10:
+            print("visca als nubies")
         del left_speed,right_speed
-        return observations, rewards
+        return observations
+    
+    def get_pos(self):
+        return self.worm.position
 
     
     def _get_observations(self) ->npt.NDArray:  
-        min_distance_to_wall = min( self.worm.position[0], self.dimx - self.worm.position[0], self.worm.position[1], self.dimy - self.worm.position[1])
+        min_distance_to_wall = min(self.worm.position[0], self.dimx - self.worm.position[0],\
+                                    self.worm.position[1], self.dimy - self.worm.position[1])
         observation = np.array([
                 min_distance_to_wall,
-                self.worm.position[0],
-                self.worm.position[1],
+                self.worm.posX,
+                self.worm.posY,
                 self.worm.facing_dir,
-                True if self.step_count == self.pulse[0] else False, ## this is bad
-            ])
+                True if self.step_count in self.pulse else False
+                                ])
         return np.array(observation)
+
+
+    def render(self, mode='human'):
+        if not hasattr(self, "fig"):
+            self.fig, self.ax = plt.subplots()
+
+        self.ax.clear()
+        w = self.worm                         # ← just one worm
+        self.ax.plot(w.position[0], w.position[1], 'ro')
+        self.ax.plot([w.position[0], w.position[0] + 100*np.cos(w.facing_dir)],
+                    [w.position[1], w.position[1] + 100*np.sin(w.facing_dir)],
+                    'b-')
+        self.ax.set_xlim(0, self.dimx)
+        self.ax.set_ylim(0, self.dimy)
+        self.fig.canvas.draw()               # draw once per call
+
 
     def close(self):
         plt.close()

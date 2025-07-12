@@ -27,3 +27,10 @@ class Worm:
         self.position, self.facing_dir = move(
             self.position, self.facing_dir, left_speed, right_speed
         )
+    @property
+    def posX(self):
+        return self.position[0]
+
+    @property
+    def posY(self):
+        return self.position[1]

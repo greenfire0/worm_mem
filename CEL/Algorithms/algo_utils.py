@@ -103,16 +103,15 @@ def evaluate_fitness_ray(candidate_weights, env, prob_type,interval,episodes):
 
 @staticmethod
 def evaluate_fitness_static(candidate:WormConnectome, env:WormSimulationEnv, prob_type ,interval,episodes):
-        sum_rewards = 0
+        sum_rewards = 0 ##zero connectomeSs
         for a in prob_type:
             env.reset(a)
             for _ in range(episodes):  # total_episodes
                 observation = env._get_observations()
                 for s in range(interval):  # training_interval
                     movement = candidate.move(observation[0], observation[4])
-                    next_observation, reward = env.step(movement)
-                    observation = next_observation
-                    sum_rewards+=reward
+                    observation = env.step(movement)
+                sum_rewards+=env.reward
         return sum_rewards
 
 
@@ -176,6 +175,7 @@ def evaluate_fitness_nomad(func, candidate_weights:npt.NDArray[np.float64], env,
         
         candidate[ind]=np.copy(result['x_best'])
         del wrapper
+        print(-result["f_best"],prob_type, interval, episodes) ##incorrectly reporting fitness
         return (candidate,-result['f_best'])
 
 class BlackboxWrapper:

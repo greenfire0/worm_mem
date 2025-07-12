@@ -20,7 +20,7 @@ class Pure_NOMAD:
         self.probs:List[int] = pattern
         self.population = initialize_population(self.population_size)
 
-    def run(self, generations=10, batch_size=32,filename:str = "Pure_nomad"):
+    def run(self, generations=3, batch_size=32,filename:str = "Pure_nomad"):
         try:
             for generation in tqdm(range(generations), desc="Generations"):
                 population_batches = [self.population[i:i+batch_size] for i in range(0, len(self.population), batch_size)]

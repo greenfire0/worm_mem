@@ -9,7 +9,7 @@ if False:
     ray.init(
                 ignore_reinit_error=True,
                 object_store_memory=12 * 1024 * 1024 * 1024,
-                num_cpus=16,
+                num_cpus=1,
             )
     pn = Pure_NOMAD()
     pn.run()
