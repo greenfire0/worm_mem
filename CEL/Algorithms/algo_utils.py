@@ -104,6 +104,7 @@ def evaluate_fitness_ray(candidate_weights, env, prob_type,interval,episodes):
 @staticmethod
 def evaluate_fitness_static(candidate:WormConnectome, env:WormSimulationEnv, prob_type ,interval,episodes):
         sum_rewards = 0 ##zero connectomeSs
+        candidate.state_reset()
         for a in prob_type:
             env.reset(a)
             for _ in range(episodes):  # total_episodes
@@ -148,6 +149,7 @@ def evaluate_fitness_nomad(func, candidate_weights:npt.NDArray[np.float64], env,
         upper_bounds = upper_bounds.tolist()
         x0           = x0.tolist()
         candidate = WormConnectome(init_weights = candidate_weights)
+        candidate.state_reset()
         params = [
             'DISPLAY_DEGREE 0', 
             'DISPLAY_STATS BBE BLK_SIZE OBJ', 
@@ -158,10 +160,11 @@ def evaluate_fitness_nomad(func, candidate_weights:npt.NDArray[np.float64], env,
         result = PyNomad.optimize(wrapper.blackbox_block, x0, lower_bounds, upper_bounds,params)
         # Use NOMAD's minimize function with blackbox_block and pass additional args
         if verify:
-            w_test = np.copy(candidate)
-            w_test.setflags(write=True)        
+            candidate[ind]=np.copy(result['x_best']) ##3fitness is going wrong smth is wrong with nomad lol
+            w_test:WormConnectome = (candidate)
+            w_test.state_reset()
+            print(ind,result['x_best'])
             w_test[ind] = np.copy(result['x_best'])
-            print(w_test[ind])
             fitness_verify = func(
                                         w_test,
                                         env,
@@ -170,12 +173,11 @@ def evaluate_fitness_nomad(func, candidate_weights:npt.NDArray[np.float64], env,
                                         episodes)
             #print("fitness",-result['f_best'],"fitness",fitness_verify)
             print(fitness_verify)
-            assert abs(fitness_verify+result['f_best'])<0.1,( w_test[ind]==result['x_best'], "\nResults\n",fitness_verify,result['f_best'])
+            assert abs(fitness_verify+result['f_best'])<0.1,( w_test[ind]==result['x_best'], "\nResults\n",w_test[ind],result['x_best'])
             del w_test,fitness_verify
         
         candidate[ind]=np.copy(result['x_best'])
         del wrapper
-        print(-result["f_best"],prob_type, interval, episodes) ##incorrectly reporting fitness
         return (candidate,-result['f_best'])
 
 class BlackboxWrapper:

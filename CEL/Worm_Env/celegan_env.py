@@ -62,8 +62,8 @@ class WormSimulationEnv(gym.Env):
         #    self.worm.sees_food= True if self.step_count in self.pulse else False
         reward = self.calculate_rewards(left_speed,right_speed,self.prob,self.reward,self.step_count>=self.pulse[-1])
         self.reward += reward
-        if reward > 0 and self.step_count < 10:
-            print("visca als nubies")
+        #if reward > 0 and self.step_count < 10:
+        #    print("visca als nubies")
         del left_speed,right_speed
         return observations
     

@@ -142,6 +142,46 @@ class WormConnectome:
         self.curcol, self.nextcol = self.nextcol, self.curcol
         return left, right
 
+
+# ─────────────────────────────────────────────────────────────
+#  NEW: internal-state reset
+# ─────────────────────────────────────────────────────────────
+    def state_reset(self, noisy: bool = False,
+                            rng: np.random.Generator | None = None,
+                            lo: float = -1.0, hi: float = 1.0) -> None:
+        """
+        Zero (or randomise) all dynamic variables – i.e. membrane/
+        synaptic potentials held in `self.post` – and restore the
+        double-buffer pointers.
+
+        Parameters
+        ----------
+        randomize : bool, default False
+            If True, fill the state with uniform noise in [lo, hi)
+            instead of zeros.  Handy for robustness tests.
+        rng : np.random.Generator, optional
+            Custom RNG; `np.random.default_rng()` is used by default.
+        lo, hi : float
+            Range for the uniform noise when `randomize=True`.
+        """
+        if noisy:
+            rng = np.random.default_rng() if rng is None else rng
+            self.post[:] = rng.uniform(lo, hi, size=self.post.shape)
+        else:
+            self.post.fill(0.0)
+
+        self.curcol  = 0          # read column
+        self.nextcol = 1          # write column
+
+
+
+
+
+
+
+
+
+
     # ── internal maintenance ────────────────────────────────
     def _rebuild_edge_index(self):
         """
@@ -207,15 +247,48 @@ class WormConnectome:
         self._refresh_arrays()                  # rebuild views, _edge_w
 
     # ── 1-D edge interface ──────────────────────────────────
-    def __getitem__(self, k: int):
+    def __getitem__(self, key):
         """Return (pre_name, post_name, weight) for edge #k."""
-        if not isinstance(k, (int, np.integer)):
-            raise TypeError("Index must be an int (1-D edge indexing only).")
-        layer, i, j = self._edge_ptr[int(k)]
-        if   layer == 0: w =  self.exc[i, j]
-        elif layer == 1: w = -self.inh[i, j]          # inh stored positive
-        else:            w =  self.gap[i, j]
-        return (self.names[i], self.names[j], float(w))
+        def _as_index(x):
+            if isinstance(x, str):           # neuron name
+                return self.name2idx[x]
+            return x                         # int, slice, list, ndarray
+
+        # ------------------------------------------------------------------
+        # 1-D edge ID  →  original behaviour
+        # ------------------------------------------------------------------
+        if isinstance(key, (int, np.integer)):
+            layer, i, j = self._edge_ptr[int(key)]
+            if   layer == 0: w =  self.exc[i, j]
+            elif layer == 1: w = -self.inh[i, j]          # inh stored +
+            else:            w =  self.gap[i, j]
+            return (self.names[i], self.names[j], float(w))
+
+        # ------------------------------------------------------------------
+        # Broadcasted matrix style indexing  wc[pre, post]
+        # ------------------------------------------------------------------
+        if isinstance(key, tuple) and len(key) == 2:
+            pre, post = map(_as_index, key)
+
+            # sparse → dense  (small slices stay cheap)
+            w_exc = self.exc[pre,  post].toarray()
+            w_inh = self.inh[pre,  post].toarray()
+            w_gap = self.gap[pre,  post].toarray()
+
+            w = w_exc - w_inh + w_gap        # inh sign-flip
+
+            # squeeze scalars back to float
+            return float(w) if w.size == 1 else np.squeeze(w)
+
+        # ------------------------------------------------------------------
+        # List / ndarray of edge IDs
+        # ------------------------------------------------------------------
+        if isinstance(key, (list, np.ndarray)):
+            # Fast path: pull straight from cached 1-D weight vector
+            ids = np.asarray(key, dtype=np.int64)
+            return self._edge_w[ids].tolist() 
+
+        raise TypeError("Unsupported index type for WormConnectome.")
 
     def __setitem__(self,
                     k: int | List[int] | np.ndarray,
