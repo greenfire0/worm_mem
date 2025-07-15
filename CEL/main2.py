@@ -5,6 +5,12 @@ import numpy as np
 from Algorithms.Pure_NOMAD import Pure_NOMAD
 import ray
 
+
+wc = WormConnectome(force_unit_weights=True)
+print(np.unique(wc.exc.data))   # [1.]
+print(np.unique(wc.inh.data))   # [1.]   (returned as −1 via wc[...] API)
+print(np.unique(wc.gap.data))   # [1.]
+
 if True:
     ray.init(
                 ignore_reinit_error=True,
@@ -15,5 +21,4 @@ if True:
     pn.run()
 
 
-gv = Genetic_Dyn_Video()        # defaults: patterns 0 & 1
-gv.run_video_simulation()
+gv = Genetic_Dyn_Video();gv.run_video_simulation()        # defaults: patterns 0 & 1

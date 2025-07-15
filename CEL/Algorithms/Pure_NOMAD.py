@@ -20,7 +20,7 @@ class Pure_NOMAD:
         self.probs:List[int] = pattern
         self.population = initialize_population(self.population_size)
 
-    def run(self, generations=5*10, batch_size=32,filename:str = "Pure_nomad"):
+    def run(self, generations=50, batch_size=32,filename:str = "Pure_nomad"):
         try:
             for generation in tqdm(range(generations), desc="Generations"):
                 population_batches = [self.population[i:i+batch_size] for i in range(0, len(self.population), batch_size)]
@@ -36,7 +36,7 @@ class Pure_NOMAD:
                                 episodes = self.total_episodes,
                                 ind=np.random.choice(self.matrix_shape, size=49, replace=False),
                                 bounds = 4,
-                                bb_eval = 250,
+                                bb_eval = 450,
                                 verify = False # turn this on for debugging
                             ))
 

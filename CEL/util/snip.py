@@ -50,7 +50,8 @@ def write_worm_to_csv(base_name: str, worm: "WormConnectome", max_rows: int = 10
         if rows < max_rows:
             break                       # current file has space
         idx += 1                        # otherwise try next suffix
-
+    
+    fname = Path(f"{base_name}{f'{0}'}.csv")
     # Append the worm matrix to the selected file.
     with fname.open("a", newline="") as csvfile:
         writer = csv.writer(csvfile)

@@ -7,7 +7,7 @@ from typing import List
 import numpy.typing as npt
 
 class WormSimulationEnv(gym.Env):
-    def __init__(self, pulse_timesteps:List[int] = [0,1,2,3,4,5] ,graphing:bool = False):
+    def __init__(self, pulse_timesteps:List[int] = [0,1,2,3,4,5,6,7,8,9,10] ,graphing:bool = False):
         super().__init__()
         self.dimx, self.dimy = 1600.0, 1200.0
         self.episode_len = 100         # ticks 0 … 100
@@ -71,9 +71,10 @@ class WormSimulationEnv(gym.Env):
         return self.worm.position
 
     
-    def _get_observations(self) ->npt.NDArray:  
-        min_distance_to_wall = min(self.worm.position[0], self.dimx - self.worm.position[0],\
-                                    self.worm.position[1], self.dimy - self.worm.position[1])
+    def _get_observations(self) ->npt.NDArray: 
+        #min_distance_to_wall = min(self.worm.position[0], self.dimx - self.worm.position[0],\
+        #                           self.worm.position[1], self.dimy - self.worm.position[1])
+        min_distance_to_wall:float  = 1000
         observation = np.array([
                 min_distance_to_wall,
                 self.worm.posX,

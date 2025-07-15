@@ -9,7 +9,8 @@ from pathlib import Path
 from typing import Dict, Tuple, List
 
 filterwarnings("ignore", category=SparseEfficiencyWarning)   # silence CSR edit warnings
-
+SENSOR_KICK = 60.0          # mV; anything > wc.threshold will light the node
+DECAY = 0.82
 # ──────────────────────────────────────────────────────────────
 # 1.  Low-level helpers
 # ──────────────────────────────────────────────────────────────
@@ -30,11 +31,12 @@ def _step_once(post: np.ndarray,
                left_idx: np.ndarray, right_idx: np.ndarray,
                sensory_idx: np.ndarray,
                cur: int, nxt: int) -> Tuple[float, float]:
-
+    post[:, nxt] = post[:, cur] * DECAY
     for idx in sensory_idx:                          # sensory injection
         _csr_row_add(post[:, nxt], exc_d, exc_i, exc_p, idx)
         _csr_row_add(post[:, nxt], inh_d, inh_i, inh_p, idx)
         _csr_row_add(post[:, nxt], gap_d, gap_i, gap_p, idx)
+        post[idx, nxt] = SENSOR_KICK                
 
     N = post.shape[0]                                # one-hop propagation
     for pre in range(N):
@@ -44,7 +46,8 @@ def _step_once(post: np.ndarray,
             _csr_row_add(post[:, nxt], exc_d, exc_i, exc_p, pre)
             _csr_row_add(post[:, nxt], inh_d, inh_i, inh_p, pre)
             _csr_row_add(post[:, nxt], gap_d, gap_i, gap_p, pre)
-            post[pre, nxt] = 0.0
+            post[pre, nxt] = 0.0 ## this hsould probably be reset to the random b
+
 
     left = 0.0                                       # muscle read-out
     right = 0.0
@@ -72,7 +75,8 @@ class WormConnectome:
     def __init__(self,
                  npz_path: str | Path = "connectome_sparse.npz",
                  threshold: float = 30.0,
-                 init_weights: np.ndarray | None = None):
+                 init_weights: np.ndarray | None = None,
+                 force_unit_weights: bool = False):
 
         Z                     = np.load(npz_path, allow_pickle=True)
         self._nt_counts: Dict[str, int] = dict(
@@ -91,7 +95,10 @@ class WormConnectome:
                                  shape=shape)
         self.gap = sp.csr_matrix((Z['gap_data'], Z['gap_indices'], Z['gap_indptr']),
                                  shape=shape)
-
+        if force_unit_weights:                       # <── NEW BLOCK
+            self.exc.data.fill(1.0)   # excitatory  +1
+            self.inh.data.fill(1.0)   # inhibitory  −1 (sign handled at read‑out)
+            self.gap.data.fill(1.0)   # gap         +1
         # raw arrays for Numba kernels
         self._exc_d, self._exc_i, self._exc_p = map(np.asarray,
             (self.exc.data, self.exc.indices, self.exc.indptr))
