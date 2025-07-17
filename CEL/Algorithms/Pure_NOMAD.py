@@ -12,7 +12,7 @@ import numpy.typing as npt
 from typing import List
 
 class Pure_NOMAD:
-    def __init__(self, population_size:int = 64,pattern:List= [0],  total_episodes:int=1, training_interval:int=100,matrix_shape:int= 3951):
+    def __init__(self, population_size:int = 64,pattern:List= [1],  total_episodes:int=1, training_interval:int=100,matrix_shape:int= 3951):
         self.population_size:int = population_size
         self.matrix_shape:int = matrix_shape
         self.total_episodes:int = total_episodes
@@ -20,7 +20,7 @@ class Pure_NOMAD:
         self.probs:List[int] = pattern
         self.population = initialize_population(self.population_size)
 
-    def run(self, generations=50, batch_size=32,filename:str = "Pure_nomad"):
+    def run(self, generations=10, batch_size=32,filename:str = "Pure_nomad"):
         try:
             for generation in tqdm(range(generations), desc="Generations"):
                 population_batches = [self.population[i:i+batch_size] for i in range(0, len(self.population), batch_size)]
@@ -35,7 +35,7 @@ class Pure_NOMAD:
                                 interval = self.training_interval,
                                 episodes = self.total_episodes,
                                 ind=np.random.choice(self.matrix_shape, size=49, replace=False),
-                                bounds = 4,
+                                bounds = 0.001,
                                 bb_eval = 450,
                                 verify = False # turn this on for debugging
                             ))

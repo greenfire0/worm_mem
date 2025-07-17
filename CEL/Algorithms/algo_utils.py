@@ -11,7 +11,7 @@ from typing import List
 def initialize_population(population_size:int):
     population = []
     for _ in range(population_size):
-        population.append(WormConnectome())
+        population.append(WormConnectome(force_unit_weights=True))
     return population
 
 

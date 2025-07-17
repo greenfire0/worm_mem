@@ -6,12 +6,9 @@ from Algorithms.Pure_NOMAD import Pure_NOMAD
 import ray
 
 
-wc = WormConnectome(force_unit_weights=True)
-print(np.unique(wc.exc.data))   # [1.]
-print(np.unique(wc.inh.data))   # [1.]   (returned as −1 via wc[...] API)
-print(np.unique(wc.gap.data))   # [1.]
 
-if True:
+
+if False:
     ray.init(
                 ignore_reinit_error=True,
                 object_store_memory=12 * 1024 * 1024 * 1024,

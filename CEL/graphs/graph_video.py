@@ -95,7 +95,7 @@ class Genetic_Dyn_Video:
         if not rows:
             raise FileNotFoundError("Pure_nomad.csv is empty.")
         genome = np.asarray(rows[-1], dtype=float)
-        worm   = WormConnectome(init_weights=genome,force_unit_weights=True)
+        worm   = WormConnectome(init_weights=genome)
 
         # 2 ─ build environment
         env = WormSimulationEnv(graphing=True)
