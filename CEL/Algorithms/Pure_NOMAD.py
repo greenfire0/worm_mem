@@ -6,7 +6,7 @@ from Worm_Env.weight_dict import muscles,muscleList,mLeft,mRight
 from tqdm import tqdm
 import csv
 from Algorithms.algo_utils import initialize_population, select_parents,\
-crossover, evaluate_fitness_ray,evaluate_fitness_static,BlackboxWrapper,evaluate_fitness_nomad
+crossover,evaluate_fitness_static,BlackboxWrapper,evaluate_fitness_nomad
 from util.snip import write_worm_to_csv
 import numpy.typing as npt
 from typing import List

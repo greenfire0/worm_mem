@@ -61,6 +61,7 @@ class WormSimulationEnv(gym.Env):
         #if self.prob==1:
         #    self.worm.sees_food= True if self.step_count in self.pulse else False
         reward = self.calculate_rewards(left_speed,right_speed,self.prob,self.reward,self.step_count>=self.pulse[-1])
+
         self.reward += reward
         #if reward > 0 and self.step_count < 10:
         #    print("visca als nubies")
@@ -72,9 +73,9 @@ class WormSimulationEnv(gym.Env):
 
     
     def _get_observations(self) ->npt.NDArray: 
-        #min_distance_to_wall = min(self.worm.position[0], self.dimx - self.worm.position[0],\
-        #                           self.worm.position[1], self.dimy - self.worm.position[1])
-        min_distance_to_wall:float  = 1000
+        min_distance_to_wall = min(self.worm.position[0], self.dimx - self.worm.position[0],\
+                                   self.worm.position[1], self.dimy - self.worm.position[1])
+        #min_distance_to_wall:float  = 1000
         observation = np.array([
                 min_distance_to_wall,
                 self.worm.posX,

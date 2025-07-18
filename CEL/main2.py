@@ -18,4 +18,4 @@ if False:
     pn.run()
 
 
-gv = Genetic_Dyn_Video();gv.run_video_simulation()        # defaults: patterns 0 & 1
+gv = Genetic_Dyn_Video();gv.run_video_simulation()        # defaults: patterns 0 & 

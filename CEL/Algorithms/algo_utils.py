@@ -6,12 +6,16 @@ import PyNomad
 import numpy.typing as npt
 import time
 from numba import njit
-from typing import List
+from typing import List, Callable
 @staticmethod
-def initialize_population(population_size:int):
+def initialize_population(population_size:int,controller_class:Callable,init_weights = None):
     population = []
-    for _ in range(population_size):
-        population.append(WormConnectome(force_unit_weights=True))
+    if init_weights != None:
+        for _ in range(population_size):
+            population.append(controller_class())
+    else:
+        for _ in range(population_size):
+             population.append(controller_class)
     return population
 
 
@@ -127,8 +131,8 @@ def mutate(offspring,matrix_shape, n=5):
 
 
 @ray.remote(max_retries=0) # type: ignore[arg-type]
-def evaluate_fitness_nomad(func, candidate_weights:npt.NDArray[np.float64], env, prob_type, interval, episodes,ind,bounds:int,bb_eval,verify:bool=True):
-    
+def evaluate_fitness_nomad(func:Callable, candidate_weights:npt.NDArray[np.float64], env, prob_type, interval, episodes,ind,bounds:int,bb_eval,verify:bool=True):
+        #print(env,prob_type,candidate_weights,ind,bounds)
         if ind.size == 0:
                 raise ValueError(f"Please pass indicies,{ind}")
         x0 = np.asarray(candidate_weights[ind], dtype=np.float64)
