@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "worm-ea"
+version = "0.1.0"
+description = "Evolutionary optimisation with PyNomad"
+authors = [{name = "Miles Churchland"}]
+dependencies = [
+    "jax>=0.4.20",
+    "flax>=0.8.0",
+    "evosax>=0.4",
+    "optax>=0.2",
+    "PyNomad>=0.9",
+    "ray>=2.0",
+    "numba>=0.58",
+    "worm-env @ git+https://github.com/yourorg/Worm_Env.git"  # existing env
+]
